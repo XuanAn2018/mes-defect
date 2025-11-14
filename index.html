@@ -15,19 +15,16 @@
         #status { margin-top: 10px; text-align: center; font-weight: bold; }
         .hidden { display: none; }
         .preview-img { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; border-radius: 8px; border: 1px dashed #ccc; }
-        .settings-toggle { text-align: center; color: #007bff; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-    <!-- Chỉ còn lại ô nhập Worker URL -->
     <div class="card">
         <h2>⚙️ Cài đặt</h2>
         <label>Cloudflare Worker URL:</label>
-        <input type="text" id="workerUrl" placeholder="https://..." onchange="saveConfig()">
+        <input type="text" id="workerUrl" placeholder="https://your-worker.user.workers.dev" onchange="saveConfig()">
     </div>
 
-    <!-- Khu vực Báo cáo -->
     <div class="card">
         <h2>📝 Báo cáo lỗi</h2>
         
@@ -54,13 +51,11 @@
     </div>
 
     <script>
-        // Load config đã lưu khi mở app
         window.onload = function() {
             ['workerUrl', 'package'].forEach(id => {
                 const val = localStorage.getItem(id);
                 if (val) document.getElementById(id).value = val;
             });
-            // Tự động tải danh sách lỗi nếu đã có worker URL
             if (document.getElementById('workerUrl').value) {
                 loadDefects();
             }
@@ -73,9 +68,8 @@
         }
 
         function log(msg, color='black') {
-            const st = document.getElementById('status');
-            st.innerText = msg;
-            st.style.color = color;
+            document.getElementById('status').innerText = msg;
+            document.getElementById('status').style.color = color;
         }
 
         function previewImage() {
@@ -88,13 +82,26 @@
         }
 
         async function loadDefects() {
-            const worker = document.getElementById('workerUrl').value;
-            if (!worker) return alert("Vui lòng nhập Cloudflare Worker URL trong cài đặt!");
+            let workerUrl = document.getElementById('workerUrl').value.trim();
+            if (!workerUrl) return alert("Vui lòng nhập Cloudflare Worker URL trong cài đặt!");
+            // Đảm bảo URL không có dấu gạch chéo ở cuối
+            if (workerUrl.endsWith('/')) {
+                workerUrl = workerUrl.slice(0, -1);
+            }
 
             log("⏳ Đang tải danh sách lỗi...", "blue");
             try {
-                const resp = await fetch(`${worker}/api/defects`);
-                const data = await resp.json();
+                const response = await fetch(`${workerUrl}/api/defects`);
+                
+                // *** PHẦN SỬA LỖI QUAN TRỌNG ***
+                // Kiểm tra xem server có trả lời thành công không (status 200)
+                if (!response.ok) {
+                    // Nếu không, đọc lỗi dưới dạng text và hiển thị
+                    const errorText = await response.text();
+                    throw new Error(`Lỗi từ server: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
                 
                 const select = document.getElementById('defectSelect');
                 select.innerHTML = '<option value="">-- Chọn lỗi --</option>';
@@ -106,16 +113,19 @@
                 });
                 log("✅ Đã tải xong danh sách lỗi!", "green");
             } catch (e) {
-                log("❌ Lỗi tải danh sách: " + e, "red");
+                log(`❌ ${e.message}`, "red");
             }
         }
 
         async function submitReport() {
-            const worker = document.getElementById('workerUrl').value;
+            let workerUrl = document.getElementById('workerUrl').value.trim();
+            if (workerUrl.endsWith('/')) {
+                workerUrl = workerUrl.slice(0, -1);
+            }
             const file = document.getElementById('imageInput').files[0];
             const defectVal = document.getElementById('defectSelect').value;
 
-            if (!worker || !defectVal || !file) {
+            if (!workerUrl || !defectVal || !file) {
                 return alert("Thiếu thông tin! Vui lòng chọn lỗi và đính kèm ảnh.");
             }
 
@@ -134,27 +144,30 @@
                 formData.append('comment', document.getElementById('comment').value);
                 formData.append('image', file);
 
-                const response = await fetch(`${worker}/api/report`, {
+                const response = await fetch(`${workerUrl}/api/report`, {
                     method: 'POST',
-                    body: formData // Worker sẽ tự thêm Token và các thông tin khác
+                    body: formData
                 });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Lỗi từ server: ${response.status} - ${errorText}`);
+                }
                 
                 const result = await response.json();
                 if (result.error) throw new Error(result.error);
-                if (result.status !== 'success') throw new Error("Server trả về lỗi không xác định.");
 
                 log(`🎉 Thành công! ID: ${result.defect_id}`, "green");
                 alert(`Báo cáo thành công!\nDefect ID: ${result.defect_id}`);
                 
-                // Reset form
                 document.getElementById('comment').value = "";
                 document.getElementById('imageInput').value = "";
                 document.getElementById('preview').classList.add('hidden');
                 document.getElementById('defectSelect').selectedIndex = 0;
 
             } catch (e) {
-                log("❌ Lỗi: " + e.message, "red");
-                alert("Lỗi: " + e.message);
+                log(`❌ Lỗi: ${e.message}`, "red");
+                alert(`Lỗi: ${e.message}`);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "🚀 Gửi Báo Cáo";
