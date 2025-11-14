@@ -22,7 +22,10 @@
     <div class="card">
         <h2>⚙️ Cài đặt</h2>
         <label>Cloudflare Worker URL:</label>
-        <input type="text" id="workerUrl" placeholder="https://mes-defect.chiscoong-cloudflare-com.workers.dev/" onchange="saveConfig()">
+        <!-- Thay đổi ở đây: Thêm placeholder -->
+        <input type="text" id="workerUrl" 
+               placeholder="https://mes-defect.chiscoong-cloudflare-com.workers.dev/" 
+               onchange="saveConfig()">
     </div>
 
     <div class="card">
@@ -51,20 +54,35 @@
     </div>
 
     <script>
+        // *** PHẦN SỬA LỖI QUAN TRỌNG ***
+        const DEFAULT_WORKER_URL = "https://mes-defect.chiscoong-cloudflare-com.workers.dev/";
+
         window.onload = function() {
-            ['workerUrl', 'package'].forEach(id => {
-                const val = localStorage.getItem(id);
-                if (val) document.getElementById(id).value = val;
-            });
-            if (document.getElementById('workerUrl').value) {
-                loadDefects();
+            // Load package
+            const savedPackage = localStorage.getItem('package');
+            if (savedPackage) document.getElementById('package').value = savedPackage;
+            
+            // Logic mới cho Worker URL
+            const workerUrlInput = document.getElementById('workerUrl');
+            const savedWorkerUrl = localStorage.getItem('workerUrl');
+
+            // Kiểm tra xem đã có URL được lưu chưa. `null` nghĩa là lần đầu tiên mở.
+            if (savedWorkerUrl === null) {
+                // Đây là lần đầu tiên, tự động điền URL mặc định
+                workerUrlInput.value = DEFAULT_WORKER_URL;
+                saveConfig(); // Lưu lại ngay để lần sau không bị coi là lần đầu nữa
+                log("Chào mừng! Tự động tải danh sách lỗi lần đầu...", "blue");
+                loadDefects(); // Chỉ tự động tải ở lần đầu tiên này
+            } else {
+                // Người dùng đã mở app trước đây, chỉ cần load lại giá trị đã lưu
+                workerUrlInput.value = savedWorkerUrl;
             }
         }
 
         function saveConfig() {
-            ['workerUrl', 'package'].forEach(id => {
-                localStorage.setItem(id, document.getElementById(id).value);
-            });
+            // Lưu cả 2 giá trị vào localStorage của trình duyệt
+            localStorage.setItem('workerUrl', document.getElementById('workerUrl').value);
+            localStorage.setItem('package', document.getElementById('package').value);
         }
 
         function log(msg, color='black') {
@@ -84,23 +102,15 @@
         async function loadDefects() {
             let workerUrl = document.getElementById('workerUrl').value.trim();
             if (!workerUrl) return alert("Vui lòng nhập Cloudflare Worker URL trong cài đặt!");
-            // Đảm bảo URL không có dấu gạch chéo ở cuối
-            if (workerUrl.endsWith('/')) {
-                workerUrl = workerUrl.slice(0, -1);
-            }
+            if (workerUrl.endsWith('/')) workerUrl = workerUrl.slice(0, -1);
 
             log("⏳ Đang tải danh sách lỗi...", "blue");
             try {
                 const response = await fetch(`${workerUrl}/api/defects`);
-                
-                // *** PHẦN SỬA LỖI QUAN TRỌNG ***
-                // Kiểm tra xem server có trả lời thành công không (status 200)
                 if (!response.ok) {
-                    // Nếu không, đọc lỗi dưới dạng text và hiển thị
                     const errorText = await response.text();
                     throw new Error(`Lỗi từ server: ${response.status} - ${errorText}`);
                 }
-                
                 const data = await response.json();
                 
                 const select = document.getElementById('defectSelect');
@@ -116,55 +126,42 @@
                 log(`❌ ${e.message}`, "red");
             }
         }
-
+        
+        // Hàm submitReport không thay đổi, giữ nguyên
         async function submitReport() {
             let workerUrl = document.getElementById('workerUrl').value.trim();
-            if (workerUrl.endsWith('/')) {
-                workerUrl = workerUrl.slice(0, -1);
-            }
+            if (workerUrl.endsWith('/')) workerUrl = workerUrl.slice(0, -1);
             const file = document.getElementById('imageInput').files[0];
             const defectVal = document.getElementById('defectSelect').value;
 
             if (!workerUrl || !defectVal || !file) {
                 return alert("Thiếu thông tin! Vui lòng chọn lỗi và đính kèm ảnh.");
             }
-
             const defect = JSON.parse(defectVal);
             const btn = document.getElementById('btnSubmit');
-            
             try {
                 btn.disabled = true;
                 btn.innerText = "⏳ Đang gửi...";
                 log("🔄 Đang gửi báo cáo...", "blue");
-
                 const formData = new FormData();
                 formData.append('package', document.getElementById('package').value);
                 formData.append('defect_cat', defect.cat_code);
                 formData.append('defect_code', defect.defect_code);
                 formData.append('comment', document.getElementById('comment').value);
                 formData.append('image', file);
-
-                const response = await fetch(`${workerUrl}/api/report`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
+                const response = await fetch(`${workerUrl}/api/report`, { method: 'POST', body: formData });
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`Lỗi từ server: ${response.status} - ${errorText}`);
                 }
-                
                 const result = await response.json();
                 if (result.error) throw new Error(result.error);
-
                 log(`🎉 Thành công! ID: ${result.defect_id}`, "green");
                 alert(`Báo cáo thành công!\nDefect ID: ${result.defect_id}`);
-                
                 document.getElementById('comment').value = "";
                 document.getElementById('imageInput').value = "";
                 document.getElementById('preview').classList.add('hidden');
                 document.getElementById('defectSelect').selectedIndex = 0;
-
             } catch (e) {
                 log(`❌ Lỗi: ${e.message}`, "red");
                 alert(`Lỗi: ${e.message}`);
