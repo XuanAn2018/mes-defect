@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MES Mobile Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 10px; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        h2 { margin-top: 0; font-size: 1.2rem; color: #333; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #555; }
+        input, select, textarea { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        #status { margin-top: 10px; text-align: center; font-weight: bold; }
+        .hidden { display: none; }
+        .preview-img { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; border-radius: 8px; border: 1px dashed #ccc; }
+        .settings-toggle { text-align: center; color: #007bff; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Chỉ còn lại ô nhập Worker URL -->
+    <div class="card">
+        <h2>⚙️ Cài đặt</h2>
+        <label>Cloudflare Worker URL:</label>
+        <input type="text" id="workerUrl" placeholder="https://..." onchange="saveConfig()">
+    </div>
+
+    <!-- Khu vực Báo cáo -->
+    <div class="card">
+        <h2>📝 Báo cáo lỗi</h2>
+        
+        <label>Package:</label>
+        <input type="text" id="package" value="M_XXX-XXXX_X_XXXXXXXXXXXXXXXX_XX" onchange="saveConfig()">
+
+        <label>Chọn Lỗi:</label>
+        <div style="display: flex; gap: 5px;">
+            <select id="defectSelect" style="flex: 1;">
+                <option value="">-- Nhấn 🔄 để tải danh sách --</option>
+            </select>
+            <button type="button" onclick="loadDefects()" style="width: 50px;">🔄</button>
+        </div>
+
+        <label>Ghi chú (Comment):</label>
+        <textarea id="comment" rows="2"></textarea>
+
+        <label>Ảnh đính kèm:</label>
+        <input type="file" id="imageInput" accept="image/*" capture="environment" onchange="previewImage()">
+        <img id="preview" class="preview-img hidden">
+
+        <button id="btnSubmit" onclick="submitReport()" style="margin-top: 15px;">🚀 Gửi Báo Cáo</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Load config đã lưu khi mở app
+        window.onload = function() {
+            ['workerUrl', 'package'].forEach(id => {
+                const val = localStorage.getItem(id);
+                if (val) document.getElementById(id).value = val;
+            });
+            // Tự động tải danh sách lỗi nếu đã có worker URL
+            if (document.getElementById('workerUrl').value) {
+                loadDefects();
+            }
+        }
+
+        function saveConfig() {
+            ['workerUrl', 'package'].forEach(id => {
+                localStorage.setItem(id, document.getElementById(id).value);
+            });
+        }
+
+        function log(msg, color='black') {
+            const st = document.getElementById('status');
+            st.innerText = msg;
+            st.style.color = color;
+        }
+
+        function previewImage() {
+            const file = document.getElementById('imageInput').files[0];
+            const preview = document.getElementById('preview');
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+            }
+        }
+
+        async function loadDefects() {
+            const worker = document.getElementById('workerUrl').value;
+            if (!worker) return alert("Vui lòng nhập Cloudflare Worker URL trong cài đặt!");
+
+            log("⏳ Đang tải danh sách lỗi...", "blue");
+            try {
+                const resp = await fetch(`${worker}/api/defects`);
+                const data = await resp.json();
+                
+                const select = document.getElementById('defectSelect');
+                select.innerHTML = '<option value="">-- Chọn lỗi --</option>';
+                data.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify({ cat_code: d.cat_code, defect_code: d.defect_code });
+                    opt.innerText = d.display;
+                    select.appendChild(opt);
+                });
+                log("✅ Đã tải xong danh sách lỗi!", "green");
+            } catch (e) {
+                log("❌ Lỗi tải danh sách: " + e, "red");
+            }
+        }
+
+        async function submitReport() {
+            const worker = document.getElementById('workerUrl').value;
+            const file = document.getElementById('imageInput').files[0];
+            const defectVal = document.getElementById('defectSelect').value;
+
+            if (!worker || !defectVal || !file) {
+                return alert("Thiếu thông tin! Vui lòng chọn lỗi và đính kèm ảnh.");
+            }
+
+            const defect = JSON.parse(defectVal);
+            const btn = document.getElementById('btnSubmit');
+            
+            try {
+                btn.disabled = true;
+                btn.innerText = "⏳ Đang gửi...";
+                log("🔄 Đang gửi báo cáo...", "blue");
+
+                const formData = new FormData();
+                formData.append('package', document.getElementById('package').value);
+                formData.append('defect_cat', defect.cat_code);
+                formData.append('defect_code', defect.defect_code);
+                formData.append('comment', document.getElementById('comment').value);
+                formData.append('image', file);
+
+                const response = await fetch(`${worker}/api/report`, {
+                    method: 'POST',
+                    body: formData // Worker sẽ tự thêm Token và các thông tin khác
+                });
+                
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                if (result.status !== 'success') throw new Error("Server trả về lỗi không xác định.");
+
+                log(`🎉 Thành công! ID: ${result.defect_id}`, "green");
+                alert(`Báo cáo thành công!\nDefect ID: ${result.defect_id}`);
+                
+                // Reset form
+                document.getElementById('comment').value = "";
+                document.getElementById('imageInput').value = "";
+                document.getElementById('preview').classList.add('hidden');
+                document.getElementById('defectSelect').selectedIndex = 0;
+
+            } catch (e) {
+                log("❌ Lỗi: " + e.message, "red");
+                alert("Lỗi: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🚀 Gửi Báo Cáo";
+            }
+        }
+    </script>
+</body>
+</html>
