@@ -21,10 +21,8 @@
 
     <div class="card">
         <h2>⚙️ Cài đặt</h2>
-        <label>Cloudflare Worker URL:</label>
-        <input type="text" id="workerUrl" 
-               placeholder="https://mes-defect.chiscoong-cloudflare-com.workers.dev/" 
-               onchange="saveConfig()">
+        <label>🔹 Endpoint:</label>
+        <input type="text" id="workerUrl" value="https://mes-defect.chiscoong-cloudflare-com.workers.dev/" onchange="saveConfig()">
     </div>
 
     <div class="card">
@@ -53,28 +51,13 @@
     </div>
 
     <script>
-        const DEFAULT_WORKER_URL = "https://mes-defect.chiscoong-cloudflare-com.workers.dev/";
-
         window.onload = function() {
-            // Load package
-            const savedPackage = localStorage.getItem('package');
-            if (savedPackage) document.getElementById('package').value = savedPackage;
-            
-            // Logic cho Worker URL
-            const workerUrlInput = document.getElementById('workerUrl');
+            // Load cấu hình đã lưu
             const savedWorkerUrl = localStorage.getItem('workerUrl');
-
-            // Kiểm tra xem đã có URL được lưu chưa
-            if (savedWorkerUrl === null) {
-                // Lần đầu tiên: điền giá trị mặc định
-                workerUrlInput.value = DEFAULT_WORKER_URL;
-                saveConfig();
-                log("Chào mừng! Tự động tải danh sách lỗi lần đầu...", "blue");
-                loadDefects();
-            } else {
-                // Đã có giá trị lưu: hiển thị giá trị đã lưu
-                workerUrlInput.value = savedWorkerUrl;
-            }
+            const savedPackage = localStorage.getItem('package');
+            
+            if (savedWorkerUrl) document.getElementById('workerUrl').value = savedWorkerUrl;
+            if (savedPackage) document.getElementById('package').value = savedPackage;
         }
 
         function saveConfig() {
@@ -98,7 +81,7 @@
 
         async function loadDefects() {
             let workerUrl = document.getElementById('workerUrl').value.trim();
-            if (!workerUrl) return alert("Vui lòng nhập Cloudflare Worker URL trong cài đặt!");
+            if (!workerUrl) return alert("Vui lòng nhập Endpoint trong cài đặt!");
             if (workerUrl.endsWith('/')) workerUrl = workerUrl.slice(0, -1);
 
             log("⏳ Đang tải danh sách lỗi...", "blue");
@@ -113,9 +96,7 @@
                 const select = document.getElementById('defectSelect');
                 select.innerHTML = '<option value="">-- Chọn lỗi --</option>';
                 data.forEach(d => {
-                    const opt = document.createElement('option');
-                    opt.value = JSON.stringify({ cat_code: d.cat_code, defect_code: d.defect_code });
-                    opt.innerText = d.display;
+                    const opt = new Option(d.display, JSON.stringify({ cat_code: d.cat_code, defect_code: d.defect_code }));
                     select.appendChild(opt);
                 });
                 log("✅ Đã tải xong danh sách lỗi!", "green");
