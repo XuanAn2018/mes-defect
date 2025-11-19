@@ -22,8 +22,6 @@
     <div class="card">
         <h2>⚙️ Cài đặt</h2>
         <label>Cloudflare Worker URL:</label>
-        <!-- Thay đổi ở đây: Thêm placeholder -->
-        <input id="endpoint" value="https://mes-defect.chiscoong-cloudflare-com.workers.dev/">
         <input type="text" id="workerUrl" 
                placeholder="https://mes-defect.chiscoong-cloudflare-com.workers.dev/" 
                onchange="saveConfig()">
@@ -55,7 +53,6 @@
     </div>
 
     <script>
-        // *** PHẦN SỬA LỖI QUAN TRỌNG ***
         const DEFAULT_WORKER_URL = "https://mes-defect.chiscoong-cloudflare-com.workers.dev/";
 
         window.onload = function() {
@@ -63,25 +60,24 @@
             const savedPackage = localStorage.getItem('package');
             if (savedPackage) document.getElementById('package').value = savedPackage;
             
-            // Logic mới cho Worker URL
+            // Logic cho Worker URL
             const workerUrlInput = document.getElementById('workerUrl');
             const savedWorkerUrl = localStorage.getItem('workerUrl');
 
-            // Kiểm tra xem đã có URL được lưu chưa. `null` nghĩa là lần đầu tiên mở.
+            // Kiểm tra xem đã có URL được lưu chưa
             if (savedWorkerUrl === null) {
-                // Đây là lần đầu tiên, tự động điền URL mặc định
+                // Lần đầu tiên: điền giá trị mặc định
                 workerUrlInput.value = DEFAULT_WORKER_URL;
-                saveConfig(); // Lưu lại ngay để lần sau không bị coi là lần đầu nữa
+                saveConfig();
                 log("Chào mừng! Tự động tải danh sách lỗi lần đầu...", "blue");
-                loadDefects(); // Chỉ tự động tải ở lần đầu tiên này
+                loadDefects();
             } else {
-                // Người dùng đã mở app trước đây, chỉ cần load lại giá trị đã lưu
+                // Đã có giá trị lưu: hiển thị giá trị đã lưu
                 workerUrlInput.value = savedWorkerUrl;
             }
         }
 
         function saveConfig() {
-            // Lưu cả 2 giá trị vào localStorage của trình duyệt
             localStorage.setItem('workerUrl', document.getElementById('workerUrl').value);
             localStorage.setItem('package', document.getElementById('package').value);
         }
@@ -128,7 +124,6 @@
             }
         }
         
-        // Hàm submitReport không thay đổi, giữ nguyên
         async function submitReport() {
             let workerUrl = document.getElementById('workerUrl').value.trim();
             if (workerUrl.endsWith('/')) workerUrl = workerUrl.slice(0, -1);
