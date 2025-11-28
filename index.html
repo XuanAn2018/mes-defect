@@ -3,408 +3,426 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES Defect Reporting - Báo Cáo Lỗi Sản Xuất</title>
+  <title>MES Defect Reporting - Báo Cáo Lỗi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <style>
     :root {
-      --primary: #dc3545;
-      --primary-light: #e74c3c;
-      --primary-dark: #c0392b;
-      --success: #28a745;
-      --warning: #ffc107;
-      --info: #17a2b8;
-      --light: #f8f9fa;
-      --dark: #343a40;
-      --gray: #6c757d;
-      --border-radius: 8px;
-      --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      --transition: all 0.3s ease;
+      /* Palette màu Đỏ/Cam - Cảnh báo sự cố */
+      --primary-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); /* Red/Dark Red */
+      --accent-color: #dc2626;
+
+      /* Các nút chức năng */
+      --btn-load-bg: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); /* Sky Blue */
+      --btn-reset-bg: linear-gradient(135deg, #64748b 0%, #475569 100%); /* Slate */
+      
+      /* Nền chống chói */
+      --bg-body: #e2e8f0; 
+      --bg-card: #ffffff;
+      
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #cbd5e1;
+      
+      --radius: 14px;
+      --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
+
+    * { box-sizing: border-box; outline: none; }
     
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+      color: var(--text-main);
+      margin: 0; padding: 0; min-height: 100vh;
     }
-    
-    body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
-      margin: 0; 
-      padding: 20px; 
-      color: #333;
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 800px; 
-      margin: 0 auto; 
-      background: white;
-      padding: 30px; 
-      border-radius: 12px;
-      box-shadow: var(--box-shadow);
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #e9ecef;
-    }
-    
-    h1 { 
-      color: var(--primary); 
-      margin-bottom: 10px;
-      font-weight: 700;
-    }
-    
-    .subtitle {
-      color: var(--gray);
-      margin-bottom: 15px;
-    }
-    
-    .card {
-      background: var(--light);
-      border-radius: var(--border-radius);
-      padding: 25px;
-      margin-bottom: 25px;
-      border-left: 4px solid var(--primary);
-    }
-    
-    .card-title {
-      font-weight: 600;
-      margin-top: 0;
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    label { 
-      font-weight: 600; 
-      display: block; 
-      margin-bottom: 8px;
-      color: var(--dark);
-    }
-    
-    input, select, textarea, button {
-      width: 100%; 
-      margin: 6px 0; 
-      padding: 12px; 
-      border-radius: var(--border-radius);
-      border: 1px solid #ddd; 
-      font-size: 15px;
-      transition: var(--transition);
-    }
-    
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-    }
-    
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-    
-    button {
-      background: var(--primary); 
-      color: white; 
-      border: none; 
-      font-weight: 600;
-      cursor: pointer; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    
-    button:hover { 
-      background: var(--primary-light); 
-    }
-    
-    button:disabled { 
-      background: var(--gray); 
-      cursor: not-allowed;
-    }
-    
-    .btn-success { background: var(--success); }
-    .btn-info { background: var(--info); }
-    
-    .help-text {
-      font-size: 0.85rem;
-      color: var(--gray);
-      margin-top: 5px;
-    }
-    
-    .required::after {
-      content: " *";
-      color: var(--primary);
-    }
-    
-    .preview-image {
-      max-width: 200px;
-      max-height: 200px;
-      margin-top: 10px;
-      border-radius: var(--border-radius);
-      display: none;
-    }
-    
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-    
-    .alert {
-      padding: 15px;
-      border-radius: var(--border-radius);
-      margin: 15px 0;
-      display: none;
-    }
-    
-    .alert-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .alert-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    .defect-item {
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: var(--border-radius);
-      margin: 5px 0;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    
-    .defect-item:hover {
-      background: #e9ecef;
-      border-color: var(--primary);
-    }
-    
-    .defect-item.selected {
-      background: var(--primary);
+
+    /* Navbar */
+    .navbar {
+      background: #7f1d1d; /* Dark Red background */
       color: white;
-      border-color: var(--primary-dark);
+      padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      position: sticky; top: 0; z-index: 100;
     }
+    
+    .brand {
+      font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px;
+      display: flex; align-items: center; gap: 12px; color: #fef2f2;
+    }
+    
+    .status-badge {
+      font-size: 0.85rem;
+      background: rgba(254, 202, 202, 0.15);
+      color: #fca5a5;
+      padding: 6px 16px; border-radius: 99px; font-weight: 600;
+      border: 1px solid rgba(254, 202, 202, 0.2);
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 30px auto; padding: 0 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 25px;
+    }
+
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      padding: 24px; margin-bottom: 24px;
+      border: 1px solid white;
+      height: fit-content;
+    }
+
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 15px; padding-bottom: 12px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    .card-title {
+      font-size: 1.1rem; font-weight: 700; color: #7f1d1d;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Inputs */
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block; margin-bottom: 6px;
+      font-weight: 600; font-size: 0.9rem; color: #475569;
+    }
+    input, textarea, select {
+      width: 100%; padding: 12px;
+      border: 2px solid var(--border-color);
+      border-radius: 10px; font-size: 0.95rem; font-family: inherit;
+      background: #f8fafc; transition: all 0.2s;
+    }
+    input:focus, textarea:focus {
+      border-color: #ef4444; background: white;
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+    textarea { min-height: 100px; resize: vertical; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 20px; border-radius: 10px; font-weight: 600;
+      cursor: pointer; border: none; color: white;
+      transition: all 0.2s ease; font-size: 0.95rem; width: 100%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(110%); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(100%); }
+
+    .btn-submit { background: var(--primary-gradient); font-size: 1.1rem; }
+    .btn-load { background: var(--btn-load-bg); }
+    .btn-reset { background: var(--btn-reset-bg); }
+    
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; width: auto; }
+
+    /* Defect List Area */
+    .defect-container {
+      max-height: 300px; overflow-y: auto;
+      border: 2px solid #e2e8f0; border-radius: 10px;
+      background: #f8fafc; padding: 5px;
+    }
+    .defect-item {
+      padding: 12px; margin-bottom: 4px;
+      border-radius: 8px; cursor: pointer;
+      transition: all 0.2s; border: 1px solid transparent;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .defect-item:hover { background: #fee2e2; border-color: #fecaca; }
+    .defect-item.selected {
+      background: #fef2f2; border-color: #ef4444;
+      color: #b91c1c; font-weight: 700;
+      box-shadow: inset 0 0 0 1px #ef4444;
+    }
+    .defect-item.selected::after { content: '✓'; font-weight: bold; }
+
+    /* Image Preview */
+    .image-upload-box {
+      border: 2px dashed #cbd5e1; border-radius: 10px;
+      padding: 20px; text-align: center;
+      background: #f8fafc; cursor: pointer;
+      transition: all 0.2s; position: relative;
+    }
+    .image-upload-box:hover { border-color: #ef4444; background: #fff; }
+    
+    #imagePreview {
+      max-width: 100%; max-height: 250px;
+      border-radius: 8px; margin-top: 10px;
+      display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    input[type="file"] { display: none; }
+
+    /* Logs */
+    .log-container {
+      background: #1e293b; color: #e2e8f0;
+      padding: 15px; border-radius: 12px;
+      font-family: 'Consolas', monospace; font-size: 0.85rem;
+      height: 150px; overflow-y: auto;
+      margin-top: 20px;
+    }
+    .log-entry { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .log-success { color: #4ade80; }
+    .log-error { color: #f87171; }
+
+    /* Pulse Animation for Submit */
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .pulse-btn { animation: pulse-red 2s infinite; }
+
   </style>
 </head>
 <body>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="brand">
+      <span>🚨 MES DEFECT REPORT</span>
+    </div>
+    <div class="status-badge">System Online</div>
+  </div>
+
   <div class="container">
-    <div class="header">
-      <h1>🚨 MES Defect Reporting</h1>
-      <p class="subtitle">Công cụ báo cáo lỗi sản xuất với hình ảnh</p>
-    </div>
+    
+    <!-- Left Column: Input Info -->
+    <div class="left-col">
+      
+      <!-- Config -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚙️ Thông Tin Cơ Bản</div>
+        </div>
+        
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="apiKey" value="mes_user1_pk2024" placeholder="Nhập khóa bảo mật...">
+        </div>
 
-    <div class="card">
-      <h3 class="card-title">⚙️ Cấu Hình</h3>
-      
-      <div class="form-group">
-        <label for="endpoint" class="required">Endpoint URL:</label>
-        <input type="url" id="endpoint" value="https://defect-management.chiscoong-cloudflare-com.workers.dev" placeholder="https://your-worker.workers.dev">
-        <div class="help-text">Địa chỉ API endpoint cho Defect Reporting</div>
-      </div>
-      
-      <div class="form-group">
-        <label for="apiKey" class="required">API Key:</label>
-        <input type="password" id="apiKey" placeholder="Nhập API key của bạn" value="mes_user1_pk2024">
-        <div class="help-text">Liên hệ quản trị viên để lấy API Key</div>
-      </div>
-    </div>
+        <div class="form-group">
+          <label>Package ID (Mã lô)</label>
+          <input type="text" id="package" value="M_HAR-0207_1_HAR0300RGL001001_01_02">
+        </div>
 
-    <div class="card">
-      <h3 class="card-title">📝 Thông Tin Lỗi</h3>
-      
-      <div class="form-group">
-        <label for="package" class="required">Package:</label>
-        <input type="text" id="package" placeholder="M_XXX-XXXX_X_XXXXXXXXXXXXXXXX_XX" value="M_HAR-0207_1_HAR0300RGL001001_01_02">
-      </div>
-      
-      <div class="form-group">
-        <label for="opserial">Operation Serial:</label>
-        <input type="number" id="opserial" placeholder="0" value="0">
-      </div>
-      
-      <div class="form-group">
-        <label class="required">Chọn Loại Lỗi:</label>
-        <button type="button" id="loadDefects" class="btn-info">📋 Tải Danh Sách Lỗi</button>
-        <div id="defectsList" class="form-group" style="display: none;">
-          <div class="help-text">Click để chọn loại lỗi:</div>
-          <div id="defectsContainer" style="max-height: 200px; overflow-y: auto; margin-top: 10px;"></div>
+        <div class="form-group">
+          <label>Operation Serial (Công đoạn)</label>
+          <input type="number" id="opserial" value="0" placeholder="0">
         </div>
       </div>
-      
-      <div class="form-group">
-        <label for="comment">Ghi Chú:</label>
-        <textarea id="comment" placeholder="Mô tả chi tiết về lỗi..."></textarea>
+
+      <!-- Defect Selection -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚠️ Chọn Loại Lỗi</div>
+          <button id="loadDefects" class="btn btn-load btn-sm">📥 Tải Danh Sách</button>
+        </div>
+        
+        <div id="defectsContainer" class="defect-container">
+          <div style="text-align:center; padding: 20px; color: #94a3b8;">
+            Vui lòng nhấn nút "Tải Danh Sách" để chọn lỗi.
+          </div>
+        </div>
+        <input type="hidden" id="selectedDefectCode" value="">
+        <input type="hidden" id="selectedDefectCat" value="">
       </div>
-      
-      <div class="form-group">
-        <label for="image">Hình Ảnh Minh Họa:</label>
-        <input type="file" id="image" accept="image/*">
-        <div class="help-text">Tải lên hình ảnh minh họa lỗi (tùy chọn)</div>
-        <img id="imagePreview" class="preview-image" alt="Preview">
-      </div>
+
     </div>
 
-    <div id="alert" class="alert"></div>
+    <!-- Right Column: Details & Action -->
+    <div class="right-col">
+      
+      <!-- Evidence -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📸 Bằng Chứng & Ghi Chú</div>
+        </div>
 
-    <div class="form-group">
-      <button id="submitReport" class="btn-success">🚀 Gửi Báo Cáo Lỗi</button>
-    </div>
+        <div class="form-group">
+          <label>Hình ảnh minh họa</label>
+          <div class="image-upload-box" onclick="document.getElementById('image').click()">
+            <div id="uploadPlaceholder">
+              <span style="font-size: 2rem;">📷</span><br>
+              <span style="color: #64748b; font-size: 0.9rem;">Nhấn để tải ảnh hoặc Chụp ảnh</span>
+            </div>
+            <img id="imagePreview" alt="Preview">
+            <input type="file" id="image" accept="image/*">
+          </div>
+          <div style="text-align: right; margin-top: 5px;">
+            <button id="clearImage" class="btn btn-reset btn-sm" style="display:none;">Xóa ảnh</button>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Ghi chú chi tiết</label>
+          <textarea id="comment" placeholder="Mô tả cụ thể về lỗi..."></textarea>
+        </div>
+      </div>
 
-    <div id="result" style="display: none;">
-      <h3>📋 Kết Quả:</h3>
-      <pre id="resultContent"></pre>
+      <!-- Submit Action -->
+      <button id="submitReport" class="btn btn-submit pulse-btn">
+        🚀 GỬI BÁO CÁO LỖI
+      </button>
+
+      <!-- Logs -->
+      <div class="log-container" id="log">
+        <div class="log-entry">Hệ thống sẵn sàng...</div>
+      </div>
+
     </div>
   </div>
 
   <script>
-  let selectedDefect = null;
-  let defectsList = [];
+  // ==========================================
+  // 🔒 CẤU HÌNH HỆ THỐNG
+  // ==========================================
+  const API_ENDPOINT = "https://defect-management.chiscoong-cloudflare-com.workers.dev";
+  
+  // Variables
+  let selectedDefectData = null;
 
-  // Hiển thị thông báo
-  function showAlert(message, type = 'success') {
-    const alert = document.getElementById('alert');
-    alert.textContent = message;
-    alert.className = `alert alert-${type}`;
-    alert.style.display = 'block';
+  // Logger
+  function appendLog(message, type = 'info') {
+    const logEl = document.getElementById("log");
+    const timeStr = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+    let colorClass = '';
     
-    setTimeout(() => {
-      alert.style.display = 'none';
-    }, 5000);
+    if (type === 'error') colorClass = 'log-error';
+    else if (type === 'success') colorClass = 'log-success';
+
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `<span style="color: #64748b">[${timeStr}]</span> <span class="${colorClass}">${message}</span>`;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
   }
 
-  // Hiển thị ảnh preview
-  document.getElementById('image').addEventListener('change', function(e) {
+  // Handle Image Preview
+  const imageInput = document.getElementById('image');
+  const imagePreview = document.getElementById('imagePreview');
+  const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+  const clearImageBtn = document.getElementById('clearImage');
+
+  imageInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
-    const preview = document.getElementById('imagePreview');
-    
     if (file) {
       const reader = new FileReader();
       reader.onload = function(e) {
-        preview.src = e.target.result;
-        preview.style.display = 'block';
+        imagePreview.src = e.target.result;
+        imagePreview.style.display = 'inline-block';
+        uploadPlaceholder.style.display = 'none';
+        clearImageBtn.style.display = 'inline-block';
+        appendLog(`📸 Đã chọn ảnh: ${file.name}`);
       };
       reader.readAsDataURL(file);
-    } else {
-      preview.style.display = 'none';
     }
   });
 
-  // Tải danh sách lỗi
+  clearImageBtn.addEventListener('click', function() {
+    imageInput.value = '';
+    imagePreview.style.display = 'none';
+    uploadPlaceholder.style.display = 'block';
+    clearImageBtn.style.display = 'none';
+    appendLog("Đã xóa ảnh đã chọn.");
+  });
+
+  // 📥 Tải Danh Sách Lỗi
   document.getElementById('loadDefects').addEventListener('click', async function() {
-    const endpoint = document.getElementById('endpoint').value.trim();
     const apiKey = document.getElementById('apiKey').value.trim();
-    const package = document.getElementById('package').value.trim();
+    const pkg = document.getElementById('package').value.trim();
     
-    if (!endpoint || !apiKey || !package) {
-      showAlert('Vui lòng nhập đầy đủ endpoint, API key và package!', 'error');
-      return;
-    }
+    if (!apiKey || !pkg) return alert('Vui lòng nhập API Key và Package ID!');
 
+    const btn = this;
+    const container = document.getElementById('defectsContainer');
+    
     try {
-      this.textContent = '⏳ Đang tải...';
-      this.disabled = true;
+      btn.textContent = '⏳ Đang tải...';
+      btn.disabled = true;
+      appendLog("Đang tải danh sách lỗi từ Server...");
 
-      const url = `${endpoint}/api/defects?package=${encodeURIComponent(package)}&apikey=${encodeURIComponent(apiKey)}`;
+      const url = `${API_ENDPOINT}/api/defects?package=${encodeURIComponent(pkg)}&apikey=${encodeURIComponent(apiKey)}`;
       const response = await fetch(url);
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Lỗi khi tải danh sách lỗi');
+      if (!response.ok) throw new Error(data.error || 'Lỗi tải danh sách');
+
+      const defects = data.data || [];
+      
+      // Render List
+      if(defects.length === 0) {
+        container.innerHTML = '<div style="padding:10px; text-align:center">Không tìm thấy mã lỗi nào.</div>';
+      } else {
+        container.innerHTML = '';
+        defects.forEach(defect => {
+          const div = document.createElement('div');
+          div.className = 'defect-item';
+          div.textContent = defect.display;
+          div.onclick = () => selectDefect(div, defect);
+          container.appendChild(div);
+        });
+        appendLog(`✅ Đã tải ${defects.length} loại lỗi.`, 'success');
       }
 
-      defectsList = data.data || [];
-      displayDefectsList(defectsList);
-      
-      document.getElementById('defectsList').style.display = 'block';
-      showAlert(`Đã tải ${defectsList.length} loại lỗi`);
-
     } catch (error) {
-      showAlert('Lỗi: ' + error.message, 'error');
-      console.error('Load defects error:', error);
+      appendLog(`❌ Lỗi: ${error.message}`, 'error');
+      container.innerHTML = `<div style="color:red; padding:10px;">Lỗi: ${error.message}</div>`;
     } finally {
-      this.textContent = '📋 Tải Danh Sách Lỗi';
-      this.disabled = false;
+      btn.textContent = '📥 Tải Danh Sách';
+      btn.disabled = false;
     }
   });
 
-  // Hiển thị danh sách lỗi
-  function displayDefectsList(defects) {
-    const container = document.getElementById('defectsContainer');
-    container.innerHTML = '';
-
-    defects.forEach(defect => {
-      const div = document.createElement('div');
-      div.className = 'defect-item';
-      div.textContent = defect.display;
-      div.addEventListener('click', () => selectDefect(defect, div));
-      container.appendChild(div);
-    });
-  }
-
-  // Chọn lỗi
-  function selectDefect(defect, element) {
-    // Bỏ chọn tất cả
-    document.querySelectorAll('.defect-item').forEach(item => {
-      item.classList.remove('selected');
-    });
-    
-    // Chọn item hiện tại
+  // Chọn Lỗi
+  function selectDefect(element, defect) {
+    // UI update
+    document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('selected'));
     element.classList.add('selected');
-    selectedDefect = defect;
     
-    showAlert(`Đã chọn: ${defect.display}`);
+    // Data update
+    selectedDefectData = defect;
+    appendLog(`Đã chọn: ${defect.display}`);
   }
 
-  // Gửi báo cáo lỗi
+  // 🚀 Gửi Báo Cáo
   document.getElementById('submitReport').addEventListener('click', async function() {
-    const endpoint = document.getElementById('endpoint').value.trim();
     const apiKey = document.getElementById('apiKey').value.trim();
-    const package = document.getElementById('package').value.trim();
+    const pkg = document.getElementById('package').value.trim();
     const opserial = document.getElementById('opserial').value.trim();
     const comment = document.getElementById('comment').value.trim();
-    const imageFile = document.getElementById('image').files[0];
+    const imgFile = imageInput.files[0];
 
-    if (!endpoint || !apiKey || !package) {
-      showAlert('Vui lòng nhập endpoint, API key và package!', 'error');
-      return;
-    }
+    // Validation
+    if (!apiKey || !pkg) return alert('Thiếu thông tin API Key hoặc Package!');
+    if (!selectedDefectData) return alert('⚠️ Vui lòng CHỌN LOẠI LỖI trước khi gửi!');
 
-    if (!selectedDefect) {
-      showAlert('Vui lòng chọn loại lỗi!', 'error');
-      return;
-    }
+    if (!confirm(`Xác nhận báo cáo lỗi: "${selectedDefectData.display}"?`)) return;
 
+    const btn = this;
+    
     try {
-      this.textContent = '⏳ Đang gửi...';
-      this.disabled = true;
-      document.body.classList.add('loading');
+      btn.innerHTML = '⏳ ĐANG GỬI...';
+      btn.disabled = true;
+      document.body.style.cursor = 'wait';
 
       const formData = new FormData();
-      formData.append('package', package);
+      formData.append('package', pkg);
       formData.append('opserial', opserial || '0');
-      formData.append('defect_cat', selectedDefect.cat_code);
-      formData.append('defect_code', selectedDefect.defect_code);
+      formData.append('defect_cat', selectedDefectData.cat_code);
+      formData.append('defect_code', selectedDefectData.defect_code);
       formData.append('comment', comment);
-      if (imageFile) {
-        formData.append('image', imageFile);
-      }
+      if (imgFile) formData.append('image', imgFile);
 
-      const url = `${endpoint}/api/report?apikey=${encodeURIComponent(apiKey)}`;
+      const url = `${API_ENDPOINT}/api/report?apikey=${encodeURIComponent(apiKey)}`;
+      
       const response = await fetch(url, {
         method: 'POST',
         body: formData
@@ -412,41 +430,27 @@
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Lỗi khi gửi báo cáo');
-      }
+      if (!response.ok) throw new Error(result.error || 'Gửi thất bại');
 
-      // Hiển thị kết quả
-      document.getElementById('resultContent').textContent = JSON.stringify(result, null, 2);
-      document.getElementById('result').style.display = 'block';
-      
-      showAlert('✅ Báo cáo lỗi đã được gửi thành công! Defect ID: ' + result.defect_id);
+      appendLog(`✅ BÁO CÁO THÀNH CÔNG! ID: ${result.defect_id}`, 'success');
+      alert(`✅ Gửi thành công!\nMã lỗi: ${result.defect_id}`);
 
-      // Reset form
-      setTimeout(() => {
-        document.getElementById('comment').value = '';
-        document.getElementById('image').value = '';
-        document.getElementById('imagePreview').style.display = 'none';
-        selectedDefect = null;
-        document.querySelectorAll('.defect-item').forEach(item => {
-          item.classList.remove('selected');
-        });
-      }, 2000);
+      // Reset form (giữ lại cấu hình)
+      document.getElementById('comment').value = '';
+      clearImageBtn.click();
+      document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('selected'));
+      selectedDefectData = null;
 
     } catch (error) {
-      showAlert('Lỗi: ' + error.message, 'error');
-      console.error('Submit report error:', error);
+      appendLog(`❌ Gửi thất bại: ${error.message}`, 'error');
+      alert(`❌ Lỗi: ${error.message}`);
     } finally {
-      this.textContent = '🚀 Gửi Báo Cáo Lỗi';
-      this.disabled = false;
-      document.body.classList.remove('loading');
+      btn.innerHTML = '🚀 GỬI BÁO CÁO LỖI';
+      btn.disabled = false;
+      document.body.style.cursor = 'default';
     }
   });
 
-  // Khởi tạo
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('Defect Reporting App initialized');
-  });
   </script>
 </body>
 </html>
