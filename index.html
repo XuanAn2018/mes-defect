@@ -107,6 +107,29 @@
     }
     textarea { min-height: 100px; resize: vertical; }
 
+    /* Search Box Styles (NEW) */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .search-wrapper input {
+      padding-left: 38px; /* Chừa chỗ cho icon */
+      border-color: #e2e8f0;
+    }
+    .search-wrapper input:disabled {
+      background-color: #f1f5f9;
+      cursor: not-allowed;
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
     /* Buttons */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -143,6 +166,8 @@
       box-shadow: inset 0 0 0 1px #ef4444;
     }
     .defect-item.selected::after { content: '✓'; font-weight: bold; }
+    /* Class ẩn khi filter */
+    .defect-item.hidden { display: none !important; }
 
     /* Image Preview */
     .image-upload-box {
@@ -224,6 +249,12 @@
         <div class="card-header">
           <div class="card-title">⚠️ Chọn Loại Lỗi</div>
           <button id="loadDefects" class="btn btn-load btn-sm">📥 Tải Danh Sách</button>
+        </div>
+        
+        <!-- MỚI: Ô TÌM KIẾM -->
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="defectSearch" placeholder="Lọc nhanh tên lỗi (vd: Keo, Tràn...)" disabled>
         </div>
         
         <div id="defectsContainer" class="defect-container">
@@ -334,6 +365,24 @@
     appendLog("Đã xóa ảnh đã chọn.");
   });
 
+  // 🔎 TÍNH NĂNG TÌM KIẾM LỖI (MỚI)
+  const defectSearch = document.getElementById('defectSearch');
+  
+  defectSearch.addEventListener('input', function(e) {
+    const filterText = e.target.value.toLowerCase().trim();
+    const items = document.querySelectorAll('.defect-item');
+    
+    items.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      // Nếu text chứa từ khóa -> hiện, ngược lại -> ẩn
+      if (text.includes(filterText)) {
+        item.classList.remove('hidden');
+      } else {
+        item.classList.add('hidden');
+      }
+    });
+  });
+
   // 📥 Tải Danh Sách Lỗi
   document.getElementById('loadDefects').addEventListener('click', async function() {
     const apiKey = document.getElementById('apiKey').value.trim();
@@ -347,6 +396,10 @@
     try {
       btn.textContent = '⏳ Đang tải...';
       btn.disabled = true;
+      // Reset search box khi tải mới
+      defectSearch.value = '';
+      defectSearch.disabled = true;
+      
       appendLog("Đang tải danh sách lỗi từ Server...");
 
       const url = `${API_ENDPOINT}/api/defects?package=${encodeURIComponent(pkg)}&apikey=${encodeURIComponent(apiKey)}`;
@@ -369,12 +422,19 @@
           div.onclick = () => selectDefect(div, defect);
           container.appendChild(div);
         });
+        
+        // Bật ô tìm kiếm sau khi có dữ liệu
+        defectSearch.disabled = false;
+        defectSearch.placeholder = "Gõ để lọc (ví dụ: Keo, Tràn...)";
+        defectSearch.focus(); // Tự động trỏ chuột vào ô tìm kiếm
+
         appendLog(`✅ Đã tải ${defects.length} loại lỗi.`, 'success');
       }
 
     } catch (error) {
       appendLog(`❌ Lỗi: ${error.message}`, 'error');
       container.innerHTML = `<div style="color:red; padding:10px;">Lỗi: ${error.message}</div>`;
+      defectSearch.disabled = true; // Khóa nếu lỗi
     } finally {
       btn.textContent = '📥 Tải Danh Sách';
       btn.disabled = false;
@@ -435,11 +495,15 @@
       appendLog(`✅ BÁO CÁO THÀNH CÔNG! ID: ${result.defect_id}`, 'success');
       alert(`✅ Gửi thành công!\nMã lỗi: ${result.defect_id}`);
 
-      // Reset form (giữ lại cấu hình)
+      // Reset form
       document.getElementById('comment').value = '';
       clearImageBtn.click();
       document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('selected'));
       selectedDefectData = null;
+      
+      // Reset search box nhưng không cần reload lại danh sách
+      defectSearch.value = '';
+      document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('hidden'));
 
     } catch (error) {
       appendLog(`❌ Gửi thất bại: ${error.message}`, 'error');
