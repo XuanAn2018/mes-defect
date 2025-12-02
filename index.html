@@ -9,14 +9,14 @@
   <style>
     :root {
       /* Palette màu Đỏ/Cam - Cảnh báo sự cố */
-      --primary-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); /* Red/Dark Red */
+      --primary-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
       --accent-color: #dc2626;
 
       /* Các nút chức năng */
-      --btn-load-bg: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); /* Sky Blue */
-      --btn-reset-bg: linear-gradient(135deg, #64748b 0%, #475569 100%); /* Slate */
+      --btn-load-bg: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      --btn-reset-bg: linear-gradient(135deg, #64748b 0%, #475569 100%);
       
-      /* Nền chống chói */
+      /* Nền */
       --bg-body: #e2e8f0; 
       --bg-card: #ffffff;
       
@@ -39,7 +39,7 @@
 
     /* Navbar */
     .navbar {
-      background: #7f1d1d; /* Dark Red background */
+      background: #7f1d1d;
       color: white;
       padding: 1rem 2rem;
       display: flex; align-items: center; justify-content: space-between;
@@ -90,7 +90,10 @@
     }
 
     /* Inputs */
+    .form-row { display: flex; gap: 15px; }
+    .form-col { flex: 1; }
     .form-group { margin-bottom: 18px; }
+    
     label {
       display: block; margin-bottom: 6px;
       font-weight: 600; font-size: 0.9rem; color: #475569;
@@ -101,33 +104,19 @@
       border-radius: 10px; font-size: 0.95rem; font-family: inherit;
       background: #f8fafc; transition: all 0.2s;
     }
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       border-color: #ef4444; background: white;
       box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
     }
     textarea { min-height: 100px; resize: vertical; }
 
-    /* Search Box Styles (NEW) */
-    .search-wrapper {
-      position: relative;
-      margin-bottom: 10px;
-    }
-    .search-wrapper input {
-      padding-left: 38px; /* Chừa chỗ cho icon */
-      border-color: #e2e8f0;
-    }
-    .search-wrapper input:disabled {
-      background-color: #f1f5f9;
-      cursor: not-allowed;
-    }
+    /* Search Box Styles */
+    .search-wrapper { position: relative; margin-bottom: 10px; }
+    .search-wrapper input { padding-left: 38px; border-color: #e2e8f0; }
+    .search-wrapper input:disabled { background-color: #f1f5f9; cursor: not-allowed; }
     .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      font-size: 1rem;
-      pointer-events: none;
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: #94a3b8; font-size: 1rem; pointer-events: none;
     }
 
     /* Buttons */
@@ -144,7 +133,6 @@
     .btn-submit { background: var(--primary-gradient); font-size: 1.1rem; }
     .btn-load { background: var(--btn-load-bg); }
     .btn-reset { background: var(--btn-reset-bg); }
-    
     .btn-sm { padding: 8px 16px; font-size: 0.85rem; width: auto; }
 
     /* Defect List Area */
@@ -166,7 +154,6 @@
       box-shadow: inset 0 0 0 1px #ef4444;
     }
     .defect-item.selected::after { content: '✓'; font-weight: bold; }
-    /* Class ẩn khi filter */
     .defect-item.hidden { display: none !important; }
 
     /* Image Preview */
@@ -177,7 +164,6 @@
       transition: all 0.2s; position: relative;
     }
     .image-upload-box:hover { border-color: #ef4444; background: #fff; }
-    
     #imagePreview {
       max-width: 100%; max-height: 250px;
       border-radius: 8px; margin-top: 10px;
@@ -190,21 +176,24 @@
       background: #1e293b; color: #e2e8f0;
       padding: 15px; border-radius: 12px;
       font-family: 'Consolas', monospace; font-size: 0.85rem;
-      height: 150px; overflow-y: auto;
+      height: 200px; overflow-y: auto;
       margin-top: 20px;
+      white-space: pre-wrap;
     }
     .log-entry { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .log-success { color: #4ade80; }
     .log-error { color: #f87171; }
+    .log-info { color: #60a5fa; }
+    .log-detail { color: #e2e8f0; font-size: 0.8em; margin-left: 15px; opacity: 0.8; }
 
-    /* Pulse Animation for Submit */
     @keyframes pulse-red {
       0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
       70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
     .pulse-btn { animation: pulse-red 2s infinite; }
-
+    
+    .input-wrapper { display: flex; gap: 5px; }
   </style>
 </head>
 <body>
@@ -225,19 +214,48 @@
       <!-- Config -->
       <div class="card">
         <div class="card-header">
-          <div class="card-title">⚙️ Thông Tin Cơ Bản</div>
+          <div class="card-title">⚙️ Cấu Hình Sản Xuất</div>
         </div>
         
+        <!-- API Key -->
         <div class="form-group">
           <label>API Key</label>
-          <input type="password" id="apiKey" value="" placeholder="Nhập khóa bảo mật...">
+          <input type="password" id="apiKey" placeholder="Nhập khóa bảo mật..." value="">
         </div>
 
+        <!-- Factory & Date Row -->
+        <div class="form-row">
+          <div class="form-col">
+            <label>Factory</label>
+            <input list="factoryOptions" id="factory" value="P2C1" placeholder="Chọn hoặc nhập...">
+            <datalist id="factoryOptions">
+              <option value="P2A1"></option>
+              <option value="P2B1"></option>
+              <option value="P2C1"></option>
+              <option value="P2D1"></option>
+            </datalist>
+          </div>
+          <div class="form-col">
+            <label>Date</label>
+            <input type="date" id="dateSelect">
+          </div>
+        </div>
+
+        <!-- Package ID -->
         <div class="form-group">
           <label>Package ID (Mã lô)</label>
-          <input type="text" id="package" value="M_HAR-0207_1_HAR0300RGL001001_01_02">
+          <div class="input-wrapper">
+             <input type="text" id="package" list="packageList" placeholder="Nhập Key rồi nhấn 🔄 để tải..." autocomplete="off">
+             <button id="btnReloadPkg" class="btn btn-load btn-sm" style="width: auto;" title="Tải lại danh sách gói">🔄</button>
+          </div>
+          <datalist id="packageList">
+             <!-- Javascript sẽ điền dữ liệu vào đây -->
+          </datalist>
+          <!-- Cập nhật dòng hướng dẫn bên dưới cho đúng định dạng mới -->
+          <small style="color: #64748b; font-size: 0.8rem;">Thông tin: Line | Style Name | Target | Factory</small>
         </div>
 
+        <!-- Operation -->
         <div class="form-group">
           <label>Operation Serial (Công đoạn)</label>
           <input type="number" id="opserial" value="0" placeholder="0">
@@ -251,7 +269,6 @@
           <button id="loadDefects" class="btn btn-load btn-sm">📥 Tải Danh Sách</button>
         </div>
         
-        <!-- MỚI: Ô TÌM KIẾM -->
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
           <input type="text" id="defectSearch" placeholder="Lọc nhanh tên lỗi (vd: Keo, Tràn...)" disabled>
@@ -305,7 +322,7 @@
 
       <!-- Logs -->
       <div class="log-container" id="log">
-        <div class="log-entry">Hệ thống sẵn sàng...</div>
+        <div class="log-entry">Hệ thống khởi động...</div>
       </div>
 
     </div>
@@ -315,12 +332,16 @@
   // ==========================================
   // 🔒 CẤU HÌNH HỆ THỐNG
   // ==========================================
-  const API_ENDPOINT = "https://defect-management.chiscoong-cloudflare-com.workers.dev";
+  const DEFECT_API = "https://defect-management.chiscoong-cloudflare-com.workers.dev";
+  const PACKAGE_API = "https://today-package.chiscoong-cloudflare-com.workers.dev/api/packages";
   
   // Variables
   let selectedDefectData = null;
+  let currentPackageDataList = []; 
 
-  // Logger
+  // ==========================================
+  // 🛠️ UTILS & LOGGER
+  // ==========================================
   function appendLog(message, type = 'info') {
     const logEl = document.getElementById("log");
     const timeStr = new Date().toLocaleTimeString('vi-VN', { hour12: false });
@@ -328,15 +349,166 @@
     
     if (type === 'error') colorClass = 'log-error';
     else if (type === 'success') colorClass = 'log-success';
+    else if (type === 'detail') colorClass = 'log-detail';
 
     const div = document.createElement('div');
-    div.className = 'log-entry';
-    div.innerHTML = `<span style="color: #64748b">[${timeStr}]</span> <span class="${colorClass}">${message}</span>`;
+    div.className = `log-entry ${colorClass}`;
+    
+    if (type === 'detail') {
+        div.innerHTML = `${message}`;
+    } else {
+        div.innerHTML = `<span style="color: #64748b">[${timeStr}]</span> <span class="${colorClass}">${message}</span>`;
+    }
+    
     logEl.appendChild(div);
     logEl.scrollTop = logEl.scrollHeight;
   }
 
-  // Handle Image Preview
+  // ==========================================
+  // 📦 PACKAGE MANAGEMENT
+  // ==========================================
+  
+  function setTodayDate() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('dateSelect').value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  function getApiDateString() {
+    const dateVal = document.getElementById('dateSelect').value;
+    if(!dateVal) return "";
+    return dateVal.replace(/-/g, '');
+  }
+
+  async function fetchPackages() {
+    const factory = document.getElementById('factory').value.trim();
+    const dateStr = getApiDateString();
+    const apiKey = document.getElementById('apiKey').value.trim();
+
+    if (!apiKey) {
+        appendLog("⚠️ Vui lòng nhập API Key để tải gói.", "error");
+        document.getElementById('apiKey').focus();
+        return; 
+    }
+    if (!factory || !dateStr) {
+        appendLog("⚠️ Vui lòng chọn Factory và Date.", "error");
+        return;
+    }
+
+    const btnReload = document.getElementById('btnReloadPkg');
+    const inputPkg = document.getElementById('package');
+    const datalist = document.getElementById('packageList');
+
+    try {
+        btnReload.disabled = true;
+        btnReload.textContent = "⏳";
+        inputPkg.placeholder = "Đang tải dữ liệu...";
+        
+        const url = `${PACKAGE_API}?factory=${encodeURIComponent(factory)}&fromDate=${dateStr}&withDetails=true&apikey=${encodeURIComponent(apiKey)}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error || `Lỗi HTTP ${response.status}`);
+        }
+        
+        const rawData = await response.json();
+        
+        let list = [];
+        if (rawData.data && Array.isArray(rawData.data.packages)) {
+            list = rawData.data.packages;
+        } else if (Array.isArray(rawData)) {
+            list = rawData;
+        } else if (rawData.data && Array.isArray(rawData.data)) {
+            list = rawData.data;
+        }
+        
+        currentPackageDataList = list || [];
+        datalist.innerHTML = '';
+
+        if (currentPackageDataList.length === 0) {
+            appendLog(`⚠️ Không tìm thấy gói nào cho ${factory} ngày ${dateStr}.`, 'error');
+        } else {
+            currentPackageDataList.forEach(pkg => {
+                const option = document.createElement('option');
+                
+                // --- 🛠️ CHỈNH SỬA Ở ĐÂY ---
+                // Value: Giữ nguyên Package ID (để điền vào input)
+                option.value = pkg.packageId; 
+                
+                // Label hiển thị: Line | StyleText | Target | Factory
+                // Bỏ PackageID ra khỏi phần mô tả để tránh lặp lại
+                const line = pkg.lineName || "?";
+                const style = pkg.styleText || "N/A";
+                const target = pkg.target || "0";
+                const fact = pkg.factory || "";
+                
+                const displayText = `${line} | ${style} | ${target} | ${fact}`;
+                
+                option.label = displayText;
+                option.textContent = displayText;
+                
+                datalist.appendChild(option);
+            });
+            appendLog(`✅ Đã tải ${currentPackageDataList.length} gói sản xuất.`, 'success');
+        }
+
+    } catch (e) {
+        appendLog(`❌ Lỗi tải Package: ${e.message}`, 'error');
+        console.error(e);
+        currentPackageDataList = []; 
+    } finally {
+        btnReload.disabled = false;
+        btnReload.textContent = "🔄";
+        inputPkg.placeholder = "Nhập hoặc chọn gói...";
+    }
+  }
+
+  // Sự kiện chọn Package -> Log chi tiết
+  document.getElementById('package').addEventListener('input', function(e) {
+      const val = e.target.value.trim();
+      if (!val) return;
+
+      const pkgDetails = currentPackageDataList.find(p => p.packageId === val);
+
+      if (pkgDetails) {
+          appendLog(`🔹 Đã chọn: ${pkgDetails.packageId}`, 'info');
+          let detailsLog = "";
+          
+          const fields = [
+              { key: 'lineName', label: 'Line' },
+              { key: 'styleText', label: 'Style' },
+              { key: 'target', label: 'Target' },
+              { key: 'status', label: 'Status' }
+          ];
+
+          fields.forEach(field => {
+              if (pkgDetails[field.key]) {
+                  detailsLog += `   • ${field.label}: ${pkgDetails[field.key]}\n`;
+              }
+          });
+          
+          appendLog(detailsLog, 'detail');
+      }
+  });
+
+  document.getElementById('factory').addEventListener('change', () => {
+      if(document.getElementById('apiKey').value) fetchPackages();
+  });
+  
+  document.getElementById('dateSelect').addEventListener('change', () => {
+      if(document.getElementById('apiKey').value) fetchPackages();
+  });
+  
+  document.getElementById('btnReloadPkg').addEventListener('click', fetchPackages);
+
+
+  // ==========================================
+  // 🖼️ IMAGE & UI LOGIC
+  // ==========================================
   const imageInput = document.getElementById('image');
   const imagePreview = document.getElementById('imagePreview');
   const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -365,30 +537,25 @@
     appendLog("Đã xóa ảnh đã chọn.");
   });
 
-  // 🔎 TÍNH NĂNG TÌM KIẾM LỖI (MỚI)
   const defectSearch = document.getElementById('defectSearch');
-  
   defectSearch.addEventListener('input', function(e) {
     const filterText = e.target.value.toLowerCase().trim();
     const items = document.querySelectorAll('.defect-item');
-    
     items.forEach(item => {
       const text = item.textContent.toLowerCase();
-      // Nếu text chứa từ khóa -> hiện, ngược lại -> ẩn
-      if (text.includes(filterText)) {
-        item.classList.remove('hidden');
-      } else {
-        item.classList.add('hidden');
-      }
+      item.classList.toggle('hidden', !text.includes(filterText));
     });
   });
 
-  // 📥 Tải Danh Sách Lỗi
+  // ==========================================
+  // 📥 TẢI DANH SÁCH LỖI
+  // ==========================================
   document.getElementById('loadDefects').addEventListener('click', async function() {
     const apiKey = document.getElementById('apiKey').value.trim();
     const pkg = document.getElementById('package').value.trim();
     
-    if (!apiKey || !pkg) return alert('Vui lòng nhập API Key và Package ID!');
+    if (!apiKey) return alert('Vui lòng nhập API Key!');
+    if (!pkg) return alert('Vui lòng chọn hoặc nhập Package ID!');
 
     const btn = this;
     const container = document.getElementById('defectsContainer');
@@ -396,13 +563,12 @@
     try {
       btn.textContent = '⏳ Đang tải...';
       btn.disabled = true;
-      // Reset search box khi tải mới
       defectSearch.value = '';
       defectSearch.disabled = true;
       
-      appendLog("Đang tải danh sách lỗi từ Server...");
+      appendLog(`Đang lấy danh sách lỗi cho gói ${pkg}...`);
 
-      const url = `${API_ENDPOINT}/api/defects?package=${encodeURIComponent(pkg)}&apikey=${encodeURIComponent(apiKey)}`;
+      const url = `${DEFECT_API}/api/defects?package=${encodeURIComponent(pkg)}&apikey=${encodeURIComponent(apiKey)}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -410,7 +576,6 @@
 
       const defects = data.data || [];
       
-      // Render List
       if(defects.length === 0) {
         container.innerHTML = '<div style="padding:10px; text-align:center">Không tìm thấy mã lỗi nào.</div>';
       } else {
@@ -423,36 +588,30 @@
           container.appendChild(div);
         });
         
-        // Bật ô tìm kiếm sau khi có dữ liệu
         defectSearch.disabled = false;
-        defectSearch.placeholder = "Gõ để lọc (ví dụ: Keo, Tràn...)";
-        defectSearch.focus(); // Tự động trỏ chuột vào ô tìm kiếm
-
+        defectSearch.focus();
         appendLog(`✅ Đã tải ${defects.length} loại lỗi.`, 'success');
       }
 
     } catch (error) {
-      appendLog(`❌ Lỗi: ${error.message}`, 'error');
+      appendLog(`❌ Lỗi tải Defects: ${error.message}`, 'error');
       container.innerHTML = `<div style="color:red; padding:10px;">Lỗi: ${error.message}</div>`;
-      defectSearch.disabled = true; // Khóa nếu lỗi
     } finally {
       btn.textContent = '📥 Tải Danh Sách';
       btn.disabled = false;
     }
   });
 
-  // Chọn Lỗi
   function selectDefect(element, defect) {
-    // UI update
     document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('selected'));
     element.classList.add('selected');
-    
-    // Data update
     selectedDefectData = defect;
-    appendLog(`Đã chọn: ${defect.display}`);
+    appendLog(`Đã chọn lỗi: ${defect.display}`);
   }
 
-  // 🚀 Gửi Báo Cáo
+  // ==========================================
+  // 🚀 SUBMIT REPORT
+  // ==========================================
   document.getElementById('submitReport').addEventListener('click', async function() {
     const apiKey = document.getElementById('apiKey').value.trim();
     const pkg = document.getElementById('package').value.trim();
@@ -460,11 +619,11 @@
     const comment = document.getElementById('comment').value.trim();
     const imgFile = imageInput.files[0];
 
-    // Validation
-    if (!apiKey || !pkg) return alert('Thiếu thông tin API Key hoặc Package!');
+    if (!apiKey) return alert('Thiếu API Key!');
+    if (!pkg) return alert('Thiếu Package ID!');
     if (!selectedDefectData) return alert('⚠️ Vui lòng CHỌN LOẠI LỖI trước khi gửi!');
 
-    if (!confirm(`Xác nhận báo cáo lỗi: "${selectedDefectData.display}"?`)) return;
+    if (!confirm(`Xác nhận báo cáo lỗi: "${selectedDefectData.display}" cho gói ${pkg}?`)) return;
 
     const btn = this;
     
@@ -481,13 +640,9 @@
       formData.append('comment', comment);
       if (imgFile) formData.append('image', imgFile);
 
-      const url = `${API_ENDPOINT}/api/report?apikey=${encodeURIComponent(apiKey)}`;
+      const url = `${DEFECT_API}/api/report?apikey=${encodeURIComponent(apiKey)}`;
       
-      const response = await fetch(url, {
-        method: 'POST',
-        body: formData
-      });
-
+      const response = await fetch(url, { method: 'POST', body: formData });
       const result = await response.json();
 
       if (!response.ok) throw new Error(result.error || 'Gửi thất bại');
@@ -500,10 +655,6 @@
       clearImageBtn.click();
       document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('selected'));
       selectedDefectData = null;
-      
-      // Reset search box nhưng không cần reload lại danh sách
-      defectSearch.value = '';
-      document.querySelectorAll('.defect-item').forEach(el => el.classList.remove('hidden'));
 
     } catch (error) {
       appendLog(`❌ Gửi thất bại: ${error.message}`, 'error');
@@ -513,6 +664,14 @@
       btn.disabled = false;
       document.body.style.cursor = 'default';
     }
+  });
+
+  // ==========================================
+  // 🏁 INITIALIZATION
+  // ==========================================
+  document.addEventListener('DOMContentLoaded', () => {
+      setTodayDate();
+      appendLog("📝 Vui lòng nhập API Key rồi nhấn nút 🔄 để tải gói.", "info");
   });
 
   </script>
