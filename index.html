@@ -527,6 +527,21 @@
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  // Hàm so sánh để sắp xếp line theo số thứ tự (giống mes-batch-uploader)
+  function compareLines(a, b) {
+    const lineA = (a.lineName || "").toUpperCase();
+    const lineB = (b.lineName || "").toUpperCase();
+    const matchA = lineA.match(/(\d+)/);
+    const matchB = lineB.match(/(\d+)/);
+    if (matchA && matchB) {
+        const numA = parseInt(matchA[0]);
+        const numB = parseInt(matchB[0]);
+        if (numA !== numB) return numA - numB;
+    } else if (matchA && !matchB) return -1;
+    else if (!matchA && matchB) return 1;
+    return lineA.localeCompare(lineB);
+  }
+
   // ==========================================
   // 🔐 TURNSTILE LOGIC (ĐÃ TỐI ƯU)
   // ==========================================
@@ -610,7 +625,7 @@
   };
 
   // ==========================================
-  // 📦 PACKAGE MANAGEMENT
+  // 📦 PACKAGE MANAGEMENT (ĐÃ CẬP NHẬT VỚI SẮP XẾP LINE)
   // ==========================================
   function setTodayDate() {
     const today = new Date();
@@ -670,13 +685,27 @@
             list = rawData.data;
         }
         
+        // Sắp xếp danh sách theo line (giống mes-batch-uploader)
+        list.sort(compareLines);
+        
         currentPackageDataList = list || [];
         datalist.innerHTML = '';
 
         if (currentPackageDataList.length === 0) {
             appendLog(`⚠️ Không tìm thấy gói nào cho ${factory} ngày ${dateStr}.`, 'error');
         } else {
+            // Hiển thị với định dạng phân nhóm line (giống mes-batch-uploader)
+            let currentLine = null;
             currentPackageDataList.forEach(pkg => {
+                const lineName = pkg.lineName || "Unknown";
+                // Thêm separator khi line thay đổi
+                if (lineName !== currentLine) {
+                    currentLine = lineName;
+                    const separator = document.createElement('option');
+                    separator.value = `────── LINE ${currentLine} ──────`;
+                    datalist.appendChild(separator);
+                }
+                
                 const option = document.createElement('option');
                 option.value = pkg.packageId; 
                 const line = pkg.lineName || "?";
@@ -702,9 +731,18 @@
     }
   }
 
+  // Xử lý khi người dùng nhập package (loại bỏ separator nếu chọn nhầm)
   document.getElementById('package').addEventListener('input', function(e) {
       const val = e.target.value.trim();
+      
+      // Nếu chọn nhầm separator thì xóa input
+      if(val.startsWith('──────')) { 
+          e.target.value = ''; 
+          return; 
+      }
+      
       if (!val) return;
+      
       const pkgDetails = currentPackageDataList.find(p => p.packageId === val);
       if (pkgDetails) {
           appendLog(`🔹 Đã chọn: ${pkgDetails.packageId}`, 'info');
