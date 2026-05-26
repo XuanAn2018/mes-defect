@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES Defect Reporting - Báo Cáo Lỗi</title>
+  <title>MES Defect Reporting - Báo Cáo Lỗi v1.0</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Turnstile Script -->
@@ -320,6 +320,56 @@
         max-width: 320px;
       }
     }
+
+    /* =========================================
+       AUTH OVERLAY
+       ========================================= */
+    .auth-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .auth-overlay.open { opacity: 1; visibility: visible; }
+    .auth-modal {
+      background: #fff; border-radius: 16px;
+      padding: 40px 32px 32px;
+      width: 380px; max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .auth-modal h2 { font-size: 1.5rem; font-weight: 700; color: #991b1b; margin: 0 0 8px; }
+    .auth-modal p { font-size: 0.9rem; color: #64748b; margin: 0 0 24px; }
+    .auth-modal .form-group { margin-bottom: 20px; text-align: left; }
+    .auth-modal label { font-size: 0.85rem; font-weight: 600; color: #475569; }
+    .password-wrapper { position: relative; }
+    .password-wrapper input { padding-right: 44px; }
+    .password-toggle {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 1.2rem; color: #94a3b8; padding: 4px;
+    }
+    .auth-modal .btn-submit { margin-top: 8px; padding: 14px; }
+    .auth-error {
+      background: #fef2f2; color: #b91c1c;
+      border: 1px solid #fecaca; border-radius: 10px;
+      padding: 10px 14px; font-size: 0.85rem; font-weight: 500;
+      margin-bottom: 16px; display: none;
+    }
+    .auth-error.show { display: block; }
+    #logoutBtn {
+      background: rgba(254,202,202,0.15);
+      color: #fca5a5; border: 1px solid rgba(254,202,202,0.2);
+      border-radius: 99px; padding: 6px 16px;
+      font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; transition: all 0.2s;
+      display: none;
+    }
+    #logoutBtn:hover { background: rgba(254,202,202,0.25); }
   </style>
 </head>
 <body>
@@ -329,7 +379,8 @@
     <div class="brand">
       <span>🚨 MES DEFECT REPORT</span>
     </div>
-    <div class="status-badge">System Online</div>
+    <div class="status-badge" id="statusBadge">System Online</div>
+    <button id="logoutBtn">Đăng xuất</button>
   </div>
 
   <div class="container">
@@ -342,12 +393,6 @@
           <div class="card-title">⚙️ Cấu Hình Sản Xuất</div>
         </div>
         
-        <!-- API Key -->
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="apiKey" placeholder="Nhập khóa bảo mật..." value="">
-        </div>
-
         <!-- Factory & Date Row -->
         <div class="form-row">
           <div class="form-col">
@@ -448,6 +493,29 @@
   </div>
 
   <!-- ========================================== -->
+  <!-- 🔐 AUTH OVERLAY                          -->
+  <!-- ========================================== -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-modal">
+      <h2>Đăng nhập</h2>
+      <p>Vui lòng đăng nhập để sử dụng hệ thống</p>
+      <div class="auth-error" id="authError">Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.</div>
+      <div class="form-group">
+        <label>Tên đăng nhập</label>
+        <input type="text" id="loginUsername" placeholder="Nhập tên đăng nhập..." autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <div class="password-wrapper">
+          <input type="password" id="loginPassword" placeholder="Nhập mật khẩu..." autocomplete="current-password">
+          <button type="button" class="password-toggle" id="togglePassword" tabindex="-1">👁️</button>
+        </div>
+      </div>
+      <button class="btn btn-submit" id="loginBtn">Đăng nhập</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
   <!-- 🔐 FLOATING TURNSTILE WIDGET (IMPROVED)   -->
   <!-- ========================================== -->
   <div id="turnstileWidget" class="turnstile-floating">
@@ -491,16 +559,153 @@
 
   <script>
   // ==========================================
-  // 🔒 CẤU HÌNH HỆ THỐNG
+  // PROXY CONFIG
   // ==========================================
-  const DEFECT_API = "https://defect-management.chiscoong-cloudflare-com.workers.dev";
-  const PACKAGE_API = "https://today-package.chiscoong-cloudflare-com.workers.dev/api/packages";
-  
-  // State Variables
+  const PROXY_BASE = "https://mes-proxy.chiscoong-cloudflare-com.workers.dev";
+  const STORAGE_TOKEN_KEY = "token";
+  const PROJECT_NAME = "mes-defect";
+
+  async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem(STORAGE_TOKEN_KEY) || '';
+    const headers = { ...options.headers };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const u = new URL(url, PROXY_BASE);
+    u.searchParams.delete('apikey');
+    delete headers['X-API-Key'];
+    return fetch(u.toString(), { ...options, headers });
+  }
+
+  const API_URLS = {
+    PACKAGE: PROXY_BASE + "/packages",
+    DEFECT: PROXY_BASE + "/defects",
+  };
+
+  const WORKER_LOGIN_ENDPOINT = PROXY_BASE + "/auth/verify";
+  const WORKER_VALIDATE_ENDPOINT = PROXY_BASE + "/auth/validate";
+
+  // ==========================================
+  // STATE VARIABLES
+  // ==========================================
   let selectedDefectData = null;
   let currentPackageDataList = [];
   let turnstileToken = null;
   let isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  // ==========================================
+  // AUTH FUNCTIONS
+  // ==========================================
+  const authOverlay = document.getElementById('authOverlay');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const authError = document.getElementById('authError');
+  const loginUsername = document.getElementById('loginUsername');
+  const loginPassword = document.getElementById('loginPassword');
+
+  function togglePasswordVisibility() {
+    const el = document.getElementById('loginPassword');
+    const toggle = document.getElementById('togglePassword');
+    if (!el) return;
+    const isPassword = el.getAttribute('type') === 'password';
+    el.setAttribute('type', isPassword ? 'text' : 'password');
+    if (toggle) toggle.textContent = isPassword ? '🙈' : '👁️';
+  }
+
+  document.getElementById('togglePassword')?.addEventListener('click', togglePasswordVisibility);
+
+  loginPassword.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') loginBtn.click();
+  });
+
+  async function handleLogin() {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value.trim();
+    if (!username || !password) {
+      authError.textContent = 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu';
+      authError.classList.add('show');
+      return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Đang xác thực...';
+    authError.classList.remove('show');
+
+    try {
+      const res = await fetch(WORKER_LOGIN_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.toLowerCase(), password: password }),
+      });
+      const json = await res.json();
+
+      if (json.success && json.token) {
+        localStorage.setItem(STORAGE_TOKEN_KEY, json.token);
+        unlockUI(json.user);
+        appendLog("Đăng nhập thành công", "success");
+      } else {
+        authError.textContent = json.msg || 'Sai mật khẩu. Vui lòng thử lại.';
+        authError.classList.add('show');
+      }
+    } catch (err) {
+      authError.textContent = 'Lỗi kết nối: ' + (err.message || 'Không thể kết nối tới máy chủ');
+      authError.classList.add('show');
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Đăng nhập';
+    }
+  }
+
+  loginBtn.addEventListener('click', handleLogin);
+
+  function handleLogout() {
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    lockUI();
+  }
+
+  logoutBtn.addEventListener('click', handleLogout);
+
+  function lockUI() {
+    authOverlay.classList.add('open');
+    logoutBtn.style.display = 'none';
+    document.getElementById('statusBadge').textContent = 'Chưa đăng nhập';
+    loginUsername.value = '';
+    loginPassword.value = '';
+    authError.classList.remove('show');
+    loginBtn.disabled = false;
+  }
+
+  function unlockUI(userName) {
+    authOverlay.classList.remove('open');
+    logoutBtn.style.display = 'inline-block';
+    document.getElementById('statusBadge').textContent = userName || 'Đã đăng nhập';
+    loginUsername.value = '';
+    loginPassword.value = '';
+    authError.classList.remove('show');
+  }
+
+  async function checkSessionSession() {
+    const token = localStorage.getItem(STORAGE_TOKEN_KEY);
+    if (!token) { lockUI(); return; }
+
+    try {
+      const res = await fetch(WORKER_VALIDATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      const json = await res.json();
+
+      if (json.success && json.user) {
+        unlockUI(json.user);
+        appendLog("Phiên đăng nhập hợp lệ", "success");
+      } else {
+        localStorage.removeItem(STORAGE_TOKEN_KEY);
+        lockUI();
+        appendLog("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại", "info");
+      }
+    } catch (err) {
+      console.warn('Validate session error:', err);
+      lockUI();
+    }
+  }
 
   // ==========================================
   // 🛠️ UTILS & LOGGER
@@ -644,15 +849,9 @@
   async function fetchPackages() {
     const factory = document.getElementById('factory').value.trim();
     const dateStr = getApiDateString();
-    const apiKey = document.getElementById('apiKey').value.trim();
 
-    if (!apiKey) {
-        appendLog("⚠️ Vui lòng nhập API Key để tải gói.", "error");
-        document.getElementById('apiKey').focus();
-        return; 
-    }
     if (!factory || !dateStr) {
-        appendLog("⚠️ Vui lòng chọn Factory và Date.", "error");
+        appendLog("Vui lòng chọn Factory và Date.", "error");
         return;
     }
 
@@ -665,9 +864,9 @@
         btnReload.textContent = "⏳";
         inputPkg.placeholder = "Đang tải dữ liệu...";
         
-        const url = `${PACKAGE_API}?factory=${encodeURIComponent(factory)}&fromDate=${dateStr}&withDetails=true&apikey=${encodeURIComponent(apiKey)}`;
+        const url = `${API_URLS.PACKAGE}?factory=${encodeURIComponent(factory)}&fromDate=${dateStr}&withDetails=true`;
         
-        const response = await fetch(url);
+        const response = await apiFetch(url);
         
         if (!response.ok) {
             const errJson = await response.json().catch(() => ({}));
@@ -762,13 +961,8 @@
       }
   });
 
-  document.getElementById('factory').addEventListener('change', () => {
-      if(document.getElementById('apiKey').value) fetchPackages();
-  });
-  
-  document.getElementById('dateSelect').addEventListener('change', () => {
-      if(document.getElementById('apiKey').value) fetchPackages();
-  });
+  document.getElementById('factory').addEventListener('change', fetchPackages);
+  document.getElementById('dateSelect').addEventListener('change', fetchPackages);
   
   document.getElementById('btnReloadPkg').addEventListener('click', fetchPackages);
 
@@ -817,10 +1011,8 @@
   // 📥 TẢI DANH SÁCH LỖI
   // ==========================================
   document.getElementById('loadDefects').addEventListener('click', async function() {
-    const apiKey = document.getElementById('apiKey').value.trim();
     const pkg = document.getElementById('package').value.trim();
     
-    if (!apiKey) return alert('Vui lòng nhập API Key!');
     if (!pkg) return alert('Vui lòng chọn hoặc nhập Package ID!');
 
     const btn = this;
@@ -834,8 +1026,8 @@
       
       appendLog(`Đang lấy danh sách lỗi cho gói ${pkg}...`);
 
-      const url = `${DEFECT_API}/api/defects?package=${encodeURIComponent(pkg)}&apikey=${encodeURIComponent(apiKey)}`;
-      const response = await fetch(url);
+      const url = `${API_URLS.DEFECT}/api/defects?package=${encodeURIComponent(pkg)}`;
+      const response = await apiFetch(url);
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error || 'Lỗi tải danh sách');
@@ -879,13 +1071,11 @@
   // 🚀 SUBMIT REPORT
   // ==========================================
   document.getElementById('submitReport').addEventListener('click', async function() {
-    const apiKey = document.getElementById('apiKey').value.trim();
     const pkg = document.getElementById('package').value.trim();
     const opserial = document.getElementById('opserial').value.trim();
     const comment = document.getElementById('comment').value.trim();
     const imgFile = imageInput.files[0];
 
-    if (!apiKey) return alert('Thiếu API Key!');
     if (!pkg) return alert('Thiếu Package ID!');
     if (!selectedDefectData) return alert('⚠️ Vui lòng CHỌN LOẠI LỖI trước khi gửi!');
     
@@ -918,9 +1108,7 @@
       
       if (imgFile) formData.append('image', imgFile);
 
-      const url = `${DEFECT_API}/api/report?apikey=${encodeURIComponent(apiKey)}`;
-      
-      const response = await fetch(url, { method: 'POST', body: formData });
+      const response = await apiFetch(`${API_URLS.DEFECT}/api/report`, { method: 'POST', body: formData });
       const result = await response.json();
 
       if (!response.ok) throw new Error(result.error || 'Gửi thất bại');
@@ -967,7 +1155,6 @@
   // ==========================================
   document.addEventListener('DOMContentLoaded', () => {
       setTodayDate();
-      appendLog("📝 Vui lòng nhập API Key rồi nhấn nút 🔄 để tải gói.", "info");
       
       // Nếu là Localhost: Bypass
       if (isLocalhost) {
@@ -976,10 +1163,12 @@
         btn.innerHTML = '🚀 GỬI BÁO CÁO LỖI (Localhost)';
         turnstileToken = 'LOCAL_MODE_BYPASS';
         
-        // Ẩn Turnstile đi
         widgetEl.style.display = 'none';
+        
         appendLog("🔧 Đang chạy ở chế độ localhost - Turnstile đã tắt", "info");
       }
+      
+      checkSessionSession();
   });
   </script>
 </body>
