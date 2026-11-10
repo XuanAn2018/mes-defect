@@ -86,13 +86,17 @@
     .camera-box { border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 30px; text-align: center; background: #f8fafc; cursor: pointer; transition: var(--transition); }
     .camera-box:hover { border-color: var(--red); background: #fff; }
     .camera-modal { position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .camera-modal video { max-width: 90vw; max-height: 70vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.5); transform: scaleX(-1); }
+    .camera-modal video { max-width: 90vw; max-height: 70vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+    /* Chỉ lật gương với camera trước (selfie); camera sau giữ đúng chiều thực tế */
+    .camera-modal video.mirrored { transform: scaleX(-1); }
     .camera-actions { display: flex; gap: 12px; margin-top: 20px; }
     .camera-actions .btn { width: auto; padding: 12px 28px; }
 
     /* URL tab */
     .url-input-row { display: flex; gap: 8px; } .url-input-row input { flex: 1; }
     #urlImagePreview { max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,.1); display: none; margin-top: 10px; }
+    .reuse-note { display: none; margin-top: 8px; padding: 7px 10px; border-radius: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: .78rem; line-height: 1.35; }
+    .reuse-note.show { display: block; }
 
     /* Saved images strip (inside URL tab) */
     .saved-strip { margin-bottom: 12px; }
@@ -299,6 +303,7 @@
               <button type="button" id="previewUrlBtn" class="btn btn-load btn-sm" style="width:auto;">🔍 Xem</button>
             </div>
             <img id="urlImagePreview" alt="Preview">
+            <div class="reuse-note" id="reuseNote">🔗 Đang dùng lại ảnh đã có trên ImgBB — không tải lên lại, giữ nguyên link và tên tệp cũ.</div>
           </div>
 
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap;">
@@ -635,8 +640,14 @@
     urlImagePreview.onerror = () => { urlImagePreview.style.display = 'none'; };
     isFromSavedSuggestion = true;
     updateUploadBtn('hidden');
-    showNotification('Đã chọn ảnh từ danh sách đã lưu', 'success');
-    appendLog('📸 Đã chọn ảnh từ Google Sheet');
+    setReuseNote(true);
+    showNotification('Đang dùng lại ảnh đã lưu (không upload lại)', 'success');
+    appendLog('📸 Dùng lại ảnh đã lưu trên ImgBB — không tải lên lại');
+  }
+
+  function setReuseNote(show) {
+    const el = document.getElementById('reuseNote');
+    if (el) el.classList.toggle('show', !!show);
   }
 
   // ===== CAMERA =====
@@ -644,7 +655,15 @@
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        document.getElementById('cameraVideo').srcObject = cameraStream;
+        const videoEl = document.getElementById('cameraVideo');
+        videoEl.srcObject = cameraStream;
+        // Camera sau (environment) KHÔNG lật gương; chỉ camera trước (user) mới lật
+        let facing = 'environment';
+        try {
+          const track = cameraStream.getVideoTracks()[0];
+          facing = (track && track.getSettings && track.getSettings().facingMode) || 'environment';
+        } catch (e) { /* giữ mặc định environment */ }
+        videoEl.classList.toggle('mirrored', facing === 'user');
         document.getElementById('cameraModal').style.display = 'flex';
         return;
       } catch (e) { console.warn('getUserMedia failed:', e); }
@@ -961,13 +980,14 @@
   function previewUrlImage() {
     const url = urlInput.value.trim(); if (!url) return;
     isFromSavedSuggestion = false;
+    setReuseNote(false);
     urlImagePreview.src = url; urlImagePreview.style.display = 'none';
     urlImagePreview.onload = () => { urlImagePreview.style.display = 'inline-block'; clearImageBtn.style.display = 'inline-block'; appendLog('📸 Đã xem trước ảnh'); };
     urlImagePreview.onerror = () => { urlImagePreview.style.display = 'none'; clearImageBtn.style.display = 'none'; showNotification('Không thể tải ảnh từ URL', 'error'); };
   }
   urlPreviewBtn.addEventListener('click', previewUrlImage);
   urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); previewUrlImage(); } });
-  urlInput.addEventListener('input', () => { isFromSavedSuggestion = false; });
+  urlInput.addEventListener('input', () => { isFromSavedSuggestion = false; setReuseNote(false); });
   // Cập nhật ghi chú vào Sheet khi người dùng rời ô ghi chú (kể cả chưa submit)
   document.getElementById('comment').addEventListener('blur', () => {
     if (imgbbUrl && currentStyleCode) saveImageSuggestion();
@@ -977,7 +997,7 @@
   clearImageBtn.addEventListener('click', function() {
     if (activeImageMode === 'device') { imageUploadSeq++; imageInput.value = ''; currentImageFile = null; imagePreview.style.display = 'none'; uploadPlaceholder.style.display = 'block'; document.getElementById('imgbbStatus').style.display = 'none'; imgbbUrl = null; imgbbSheetState = 'none'; }
     else if (activeImageMode === 'url') { urlInput.value = ''; urlImagePreview.style.display = 'none'; }
-    isFromSavedSuggestion = false; clearImageBtn.style.display = 'none'; updateUploadBtn('hidden'); appendLog('Đã xóa ảnh.');
+    isFromSavedSuggestion = false; setReuseNote(false); clearImageBtn.style.display = 'none'; updateUploadBtn('hidden'); appendLog('Đã xóa ảnh.');
   });
 
   // Chủ động lưu ảnh gợi ý (tránh upload nhầm khi chọn sai Package ID)
