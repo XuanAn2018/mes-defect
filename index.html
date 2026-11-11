@@ -1636,6 +1636,8 @@
     let savedImagesState = { style: '', loading: false, loaded: false }, savedError = '', savedQuerySeq = 0;
     let imgbbSheetState = 'none'; // none | saving | saved | pending | error
     let imageUploadSeq = 0; // chống race khi đổi/xóa ảnh lúc đang upload
+    let imageUploading = null; // Promise upload đang chạy → chống upload trùng 1 ảnh
+    let imageSavingSheet = null; // Promise lưu Sheet đang chạy → chống ghi trùng
     let lastLoggedPackageId = '';
     let cameraStream = null;
     const isLocalhost = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -2039,7 +2041,8 @@
 
     // ===== PROCESS IMAGE FILE (device + camera → preview, upload khi người dùng xác nhận) =====
     async function processImageFile(file) {
-      imageUploadSeq++;
+      imageUploadSeq++; // ảnh mới → upload cũ (nếu có) tự vô hiệu qua seq check
+      imageUploading = null; // cho phép upload ảnh mới ngay cả khi ảnh cũ đang upload
       currentImageFile = file;
       // Switch to device tab để show preview
       document.querySelectorAll('.img-tab').forEach(t => t.classList.remove('active'));
@@ -2082,6 +2085,7 @@
     }
 
     // Upload ảnh đang chọn lên ImgBB + lưu gợi ý vào Sheet (chỉ khi người dùng xác nhận)
+    // Có guard chống gọi trùng (bấm nút + gửi báo cáo cùng lúc) → 1 ảnh chỉ upload đúng 1 lần
     async function uploadCurrentImage() {
       if (!currentImageFile) { showNotification('Chưa có ảnh để lưu', 'warning'); return false; }
       if (!currentStyleCode) {
@@ -2096,6 +2100,9 @@
         if (!ok && imgbbSheetState === 'error') updateUploadBtn('error');
         return ok;
       }
+      // Upload này đang chạy (vd: vừa bấm nút rồi bấm gửi) → cùng chờ 1 kết quả chung
+      if (imageUploading) return imageUploading;
+
       const seq = imageUploadSeq;
       const file = currentImageFile;
       const name = buildImgbbName(file);
@@ -2103,23 +2110,30 @@
       updateUploadBtn('uploading');
       statusEl.className = 'imgbb-status uploading';
       statusEl.textContent = 'Đang upload lên ImgBB...';
-      try {
-        const uploadedUrl = await uploadToImgBB(file, name);
-        if (seq !== imageUploadSeq) return false; // ảnh đã bị đổi/xóa trong lúc upload
-        imgbbUrl = uploadedUrl;
-        appendLog(`📸 Đã upload lên ImgBB: ${name}`, 'success');
-        imgbbSheetState = 'saving'; refreshImgbbStatus();
-        // Lưu gợi ý ngay, kể cả khi người dùng chưa gửi báo cáo
-        await saveImageSuggestion();
-        return true;
-      } catch (err) {
-        if (seq !== imageUploadSeq) return false;
-        statusEl.className = 'imgbb-status error';
-        statusEl.textContent = `❌ Upload thất bại: ${err.message}`;
-        appendLog(`⚠️ Upload ImgBB thất bại: ${err.message}`, 'error');
-        updateUploadBtn('error');
-        return false;
-      }
+
+      imageUploading = (async () => {
+        try {
+          const uploadedUrl = await uploadToImgBB(file, name);
+          if (seq !== imageUploadSeq) return false; // ảnh đã bị đổi/xóa trong lúc upload
+          imgbbUrl = uploadedUrl;
+          appendLog(`📸 Đã upload lên ImgBB: ${name}`, 'success');
+          imgbbSheetState = 'saving'; refreshImgbbStatus();
+          // Lưu gợi ý ngay, kể cả khi người dùng chưa gửi báo cáo
+          await saveImageSuggestion();
+          return true;
+        } catch (err) {
+          if (seq !== imageUploadSeq) return false;
+          statusEl.className = 'imgbb-status error';
+          statusEl.textContent = `❌ Upload thất bại: ${err.message}`;
+          appendLog(`⚠️ Upload ImgBB thất bại: ${err.message}`, 'error');
+          updateUploadBtn('error');
+          return false;
+        } finally {
+          // Chỉ nhả guard nếu vẫn là lần upload của ảnh này (ảnh khác đã reset ở processImageFile)
+          if (seq === imageUploadSeq) imageUploading = null;
+        }
+      })();
+      return imageUploading;
     }
 
     // ===== IMGBB (upload qua Apps Script, key không lộ ở client) =====
@@ -2210,6 +2224,7 @@
     }
 
     // Lưu/cập nhật ảnh vừa upload vào Sheet ngay lập tức (chưa cần submit báo cáo)
+    // Có guard chống ghi trùng khi 2 luồng cùng gọi (vd: upload xong + rời ô ghi chú)
     async function saveImageSuggestion() {
       if (!imgbbUrl) { imgbbSheetState = 'none'; return false; }
       if (!currentStyleCode) {
@@ -2217,15 +2232,24 @@
         refreshImgbbStatus();
         return false;
       }
+      if (imageSavingSheet) return imageSavingSheet; // đang lưu URL này → chờ kết quả chung
+
       const url = imgbbUrl;
       imgbbSheetState = 'saving';
       refreshImgbbStatus();
-      const ok = await saveImageToSheet(url, document.getElementById('comment').value.trim());
-      if (imgbbUrl !== url) return ok; // ảnh đã bị đổi/xóa trong lúc lưu
-      imgbbSheetState = ok ? 'saved' : 'error';
-      refreshImgbbStatus();
-      if (activeImageMode === 'device') updateUploadBtn(ok ? 'saved' : 'error');
-      return ok;
+      imageSavingSheet = (async () => {
+        try {
+          const ok = await saveImageToSheet(url, document.getElementById('comment').value.trim());
+          if (imgbbUrl !== url) return ok; // ảnh đã bị đổi/xóa trong lúc lưu
+          imgbbSheetState = ok ? 'saved' : 'error';
+          refreshImgbbStatus();
+          if (activeImageMode === 'device') updateUploadBtn(ok ? 'saved' : 'error');
+          return ok;
+        } finally {
+          imageSavingSheet = null;
+        }
+      })();
+      return imageSavingSheet;
     }
 
     // ===== PACKAGE MGMT =====
@@ -2341,7 +2365,7 @@
 
     // Clear image
     clearImageBtn.addEventListener('click', function () {
-      if (activeImageMode === 'device') { imageUploadSeq++; imageInput.value = ''; currentImageFile = null; imagePreview.style.display = 'none'; uploadPlaceholder.style.display = 'block'; document.getElementById('imgbbStatus').style.display = 'none'; imgbbUrl = null; imgbbSheetState = 'none'; }
+      if (activeImageMode === 'device') { imageUploadSeq++; imageUploading = null; imageInput.value = ''; currentImageFile = null; imagePreview.style.display = 'none'; uploadPlaceholder.style.display = 'block'; document.getElementById('imgbbStatus').style.display = 'none'; imgbbUrl = null; imgbbSheetState = 'none'; }
       else if (activeImageMode === 'url') { urlInput.value = ''; urlImagePreview.style.display = 'none'; }
       isFromSavedSuggestion = false; setReuseNote(false); clearImageBtn.style.display = 'none'; updateUploadBtn('hidden'); appendLog('Đã xóa ảnh.');
     });
