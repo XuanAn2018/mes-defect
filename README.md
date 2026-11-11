@@ -1,4 +1,4 @@
-[README.md](https://github.com/user-attachments/files/34616118/README.md)
+[README.md](https://github.com/user-attachments/files/34677689/README.md)
 # mes-defect
 
 MES Defect Reporting — static frontend (`index.html`) + Google Apps Script backend (`apps-script.js`).
@@ -27,3 +27,14 @@ Nhờ vậy nếu chọn nhầm Package ID, ảnh chưa bị đẩy lên ImgBB v
 Tên file trên ImgBB có dạng `STYLECODE_yyyyMMdd_HHmmss.jpg`.
 Sheet dùng `Image URL` làm khóa upsert: sửa ghi chú/gửi lại báo cáo sẽ cập nhật đúng dòng,
 không tạo bản ghi trùng.
+
+## Ghi chú hành vi (frontend)
+
+- **Camera:** chỉ camera trước (selfie) bị lật gương; camera sau hiển thị đúng chiều thực tế.
+- **Dùng ảnh đã lưu (tab Link ảnh):** tái sử dụng đúng link ImgBB cũ, không upload lại —
+  hiện dòng nhắc xanh dưới ảnh xem trước.
+- **Modal xác nhận:** chỉ 1 panel tại một thời điểm; `Enter` = xác nhận, `Esc` = hủy.
+- **Chống upload trùng:** nếu upload đang chạy (bấm nút rồi gửi ngay), mọi lời gọi
+  cùng chờ 1 kết quả chung — 1 ảnh chỉ được đẩy lên ImgBB đúng 1 lần.
+
+Các thay đổi trên đều nằm trong `index.html` — không cần deploy lại Apps Script.
